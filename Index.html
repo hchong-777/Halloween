@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hotel de los Monstruos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Creepster&family=IM+Fell+English&family=Rubik+Wet+Paint&family=Special+Elite&display=swap" rel="stylesheet">
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #000; font-family: Georgia, serif; }
+    .pantalla {
+      position: fixed; inset: 0; z-index: 20;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+      background: radial-gradient(circle, #2a0d3a 0%, #07020c 75%);
+      color: #f1e6d0; text-align: center; padding: 24px; box-sizing: border-box;
+    }
+    .pantalla h1 { color: #ff8a1f; font-size: 2rem; margin: 0; }
+    .pantalla p { max-width: 330px; line-height: 1.5; margin: 0; }
+    .chico { font-size: .9rem; opacity: .8; }
+    .oculto { display: none !important; }
+    button {
+      margin-top: 12px; padding: 14px 30px; font-size: 1.1rem; font-family: inherit;
+      background: #5b1a7a; color: #fff; border: 2px solid #ff8a1f; border-radius: 8px;
+    }
+    #panel {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 10; display: none;
+      padding: 12px; background: rgba(10, 0, 20, .82); color: #fff; text-align: center;
+    }
+    #iconos { font-size: 1.8rem; letter-spacing: 6px; margin-top: 4px; }
+    #iconos .no { opacity: .35; }
+    #siguiente { margin-top: 8px; color: #ff8a1f; font-size: .95rem; }
+    #ayuda { font-size: .72rem; opacity: .55; margin-top: 8px; }
+    #codigo { font-size: 1.5rem; color: #ff8a1f; border: 2px dashed #ff8a1f; padding: 10px 18px; border-radius: 8px; }
+
+    /* ===== Acertijos animados ===== */
+    #pista { margin-top: 6px; line-height: 1.5; }
+    #pista .palabra { display: inline-block; white-space: nowrap; }
+    #pista .l { display: inline-block; position: relative; }
+    #pista .gota::after {
+      content: ''; position: absolute; left: 45%; top: 85%;
+      width: 3px; height: 5px; border-radius: 0 0 3px 3px;
+      background: var(--gota); opacity: 0;
+      animation: gotear 3s calc(var(--d) + 1s) infinite;
+    }
+    @keyframes gotear {
+      0%   { opacity: 0; transform: translateY(0) scaleY(.5); }
+      15%  { opacity: 1; }
+      70%  { opacity: 1; transform: translateY(10px) scaleY(1.4); }
+      100% { opacity: 0; transform: translateY(16px); }
+    }
+
+    /* Vladislao: tinta de vampiro */
+    .estilo-vampiro { --gota: #c40000; font-family: 'IM Fell English', serif; color: #ff5a5a; font-size: 1.05rem; text-shadow: 0 0 6px rgba(160,0,0,.8); }
+    .estilo-vampiro .l { animation: tinta .6s var(--d) backwards; }
+    @keyframes tinta {
+      from { opacity: 0; filter: blur(4px); transform: translateY(-2px); }
+      to   { opacity: 1; filter: blur(0); transform: none; }
+    }
+
+    /* Huesitos: letras de hueso */
+    .estilo-huesos { font-family: 'Creepster', cursive; color: #f4ecd8; font-size: 1.15rem; letter-spacing: 1px; text-shadow: 0 2px 0 #3a2a1a; }
+    .estilo-huesos .l { animation: caer .55s var(--d) backwards cubic-bezier(.3,1.6,.5,1), traqueteo 2.5s calc(var(--d) + .6s) infinite; }
+    .estilo-huesos .suelto { animation: caer .55s var(--d) backwards cubic-bezier(.3,1.6,.5,1), suelto 4s calc(var(--d) + 1s) infinite; }
+    @keyframes caer {
+      from { opacity: 0; transform: translateY(-40px) rotate(-20deg); }
+      to   { opacity: 1; transform: none; }
+    }
+    @keyframes traqueteo {
+      0%, 12%, 100% { transform: none; }
+      3% { transform: translate(1px,-1px) rotate(4deg); }
+      6% { transform: translate(-1px,1px) rotate(-4deg); }
+      9% { transform: translate(1px,0) rotate(3deg); }
+    }
+    @keyframes suelto {
+      0%, 70%, 100% { transform: none; }
+      78% { transform: translateY(18px) rotate(30deg); }
+      86% { transform: translateY(-6px) rotate(-10deg); }
+      92% { transform: none; }
+    }
+
+    /* Chef Pantano: sopa viscosa */
+    .estilo-pantano { --gota: #7ccf3a; font-family: 'Rubik Wet Paint', cursive; color: #9be15d; font-size: 1.05rem; text-shadow: 0 0 8px rgba(80,200,60,.6); }
+    .estilo-pantano .l { transform-origin: bottom; animation: emerger .7s var(--d) backwards ease-out, gelatina 2.2s calc(var(--d) + .7s) infinite ease-in-out; }
+    @keyframes emerger {
+      0%   { opacity: 0; transform: translateY(14px) scaleY(.3); }
+      60%  { opacity: 1; transform: translateY(-3px) scaleY(1.25); }
+      100% { transform: none; }
+    }
+    @keyframes gelatina {
+      0%, 100% { transform: scale(1,1); }
+      50%      { transform: scale(1.06,.94); }
+    }
+
+    /* Doña Medusa: serpientes que se vuelven piedra */
+    .estilo-medusa { font-family: 'Cinzel', serif; font-weight: 700; color: #7fdc6a; font-size: .95rem; text-shadow: 0 0 6px rgba(60,180,60,.6); transition: color 1.5s, text-shadow 1.5s; }
+    .estilo-medusa .l { animation: reptar .8s var(--d) backwards ease-out, ondular 1.4s calc(var(--d) + .8s) infinite ease-in-out; }
+    .estilo-medusa.piedra { color: #a9a49a; text-shadow: 1px 1px 0 #4a4a4a, -1px -1px 0 #d8d8d8; animation: crujir .45s; }
+    .estilo-medusa.piedra .l { animation: none; }
+    @keyframes reptar {
+      0%   { opacity: 0; transform: translateX(-18px) rotate(-25deg); }
+      40%  { opacity: 1; transform: translateX(6px) rotate(15deg); }
+      70%  { transform: translateX(-3px) rotate(-8deg); }
+      100% { transform: none; }
+    }
+    @keyframes ondular {
+      0%, 100% { transform: translateY(0) rotate(0); }
+      50%      { transform: translateY(-2px) rotate(3deg); }
+    }
+    @keyframes crujir {
+      0%, 100% { transform: none; }
+      20% { transform: translate(-3px,1px); }
+      40% { transform: translate(3px,-1px); }
+      60% { transform: translate(-2px,0); }
+      80% { transform: translate(2px,1px); }
+    }
+
+    /* Susurro: máquina de escribir fantasma */
+    .estilo-fantasma { font-family: 'Special Elite', monospace; color: #bfe6ff; font-size: .95rem; text-shadow: 0 0 8px rgba(140,200,255,.9); }
+    .estilo-fantasma .l { animation: teclear .01s var(--d) backwards, parpadeo 3.5s calc(var(--d) + .2s) infinite; }
+    @keyframes teclear { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes parpadeo {
+      0%, 88%, 100% { opacity: 1; }
+      90% { opacity: .15; }
+      93% { opacity: .8; }
+      95% { opacity: .25; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #pista .l, #pista .gota::after { animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Pantalla de bienvenida -->
+  <div id="inicio" class="pantalla">
+    <h1>Hotel de los Monstruos</h1>
+    <p>Cinco huéspedes se escaparon de sus habitaciones y andan escondidos por la oficina. Resuelve los acertijos, encuéntralos a todos y reclama tu premio en recepción.</p>
+    <p class="chico">Izquierda y derecha: viendo desde la entrada principal.</p>
+    <p class="chico">Sube el volumen 🔊</p>
+    <button id="btn">Hacer check-in</button>
+  </div>
+
+  <!-- Barra de progreso y acertijos -->
+  <div id="panel">
+    <div id="contador"></div>
+    <div id="iconos"></div>
+    <div id="siguiente"></div>
+    <div id="pista"></div>
+    <div id="ayuda">Toca aquí para ocultar o repetir el acertijo</div>
+  </div>
+
+  <!-- Pantalla de premio -->
+  <div id="final" class="pantalla oculto">
+    <h1>¡Huésped distinguido!</h1>
+    <p>Encontraste a todos los monstruos del hotel.</p>
+    <div id="codigo"></div>
+    <p id="hora" class="chico"></p>
+    <p>Muestra esta pantalla en recepción para reclamar tu premio.</p>
+    <button id="cerrar">Seguir explorando</button>
+  </div>
+
+  <a-scene
+    mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiScanning: no; uiLoading: no"
+    color-space="sRGB" renderer="colorManagement: true"
+    vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+
+    <a-assets>
+      <!-- 👉 Nombres de los videos (cámbialos si tus archivos se llaman distinto) -->
+      <video id="v0" src="./videos/vladislao.mp4" preload="metadata" playsinline webkit-playsinline crossorigin="anonymous"></video>
+      <video id="v1" src="./videos/huesitos.mp4"  preload="metadata" playsinline webkit-playsinline crossorigin="anonymous"></video>
+      <video id="v2" src="./videos/pantano.mp4"   preload="metadata" playsinline webkit-playsinline crossorigin="anonymous"></video>
+      <video id="v3" src="./videos/medusa.mp4"    preload="metadata" playsinline webkit-playsinline crossorigin="anonymous"></video>
+      <video id="v4" src="./videos/susurro.mp4"   preload="metadata" playsinline webkit-playsinline crossorigin="anonymous"></video>
+    </a-assets>
+
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <!-- Pósters 3:4 → height 1.33 -->
+    <a-entity mindar-image-target="targetIndex: 0" data-i="0"><a-video src="#v0" width="1" height="1.33"></a-video></a-entity>
+    <a-entity mindar-image-target="targetIndex: 1" data-i="1"><a-video src="#v1" width="1" height="1.33"></a-video></a-entity>
+    <a-entity mindar-image-target="targetIndex: 2" data-i="2"><a-video src="#v2" width="1" height="1.33"></a-video></a-entity>
+    <a-entity mindar-image-target="targetIndex: 3" data-i="3"><a-video src="#v3" width="1" height="1.33"></a-video></a-entity>
+    <a-entity mindar-image-target="targetIndex: 4" data-i="4"><a-video src="#v4" width="1" height="1.33"></a-video></a-entity>
+  </a-scene>
+
+  <script>
+    // ================== CONFIGURACIÓN ==================
+    // El orden de esta lista es el orden del recorrido
+    // y debe coincidir con el orden en que compilaste los pósters.
+    // Estilos disponibles: vampiro, huesos, pantano, medusa, fantasma
+    const MONSTRUOS = [
+      { // Respuesta: OFICINA 3, DERECHA
+        nombre: 'Vladislao', icono: '🧛', estilo: 'vampiro',
+        pista: 'Dos colmillos tengo yo, y uno más por la luna llena;\nsúmalos y encontrarás la puerta de mi condena.\nNo busques junto al corazón, que el mío dejó de latir:\ndel lado contrario al pecho, ahí me vas a descubrir.'
+      },
+      { // Respuesta: OFICINA 5, DERECHA
+        nombre: 'Huesitos', icono: '💀', estilo: 'huesos',
+        pista: 'Cinco dedos en cada mano tenía este botones de hueso,\npero la izquierda la perdí cargando un equipaje grueso.\nCuenta los dedos que me quedan y ve a esa oficina sin miedo,\ndel lado de la mano que aún tengo, ahí te espero.'
+      },
+      { // Respuesta: OFICINA 6, DERECHA
+        nombre: 'Chef Pantano', icono: '🍲', estilo: 'pantano',
+        pista: 'Mi sopa lleva media docena de ojos de rana bien frescos;\ncuéntalos y sabrás el número de mi cocina, sin pretextos.\nDel lado diestro me hallarás, con la cuchara en la mano,\ny si te ofrezco una probada... di que eres vegetariano.'
+      },
+      { // Respuesta: BAÑO DE MUJERES
+        nombre: 'Doña Medusa', icono: '🐍', estilo: 'medusa',
+        pista: 'Con serpientes por cabello me arreglo frente al espejo;\ndonde las damas se retocan, ahí me escondo y no me alejo.\nNingún caballero cruza mi tocador, fíjate bien antes de entrar,\ny no me mires a los ojos... o de piedra te vas a quedar.'
+      },
+      { // Respuesta: BAÑO DE HOMBRES
+        nombre: 'Susurro', icono: '👻', estilo: 'fantasma',
+        pista: 'Llevo siglos archivando y hoy me tocó otra misión:\nasustar a los caballeros en su cuarto de reflexión.\nDonde las damas no entran y el agua corre sin cesar,\nbusca detrás de la puerta... si te atreves a pasar.'
+      }
+    ];
+    const CODIGO_PREMIO = 'MEDIANOCHE-13';
+    // ===================================================
+
+    const TOTAL = MONSTRUOS.length;
+    const CLAVE = 'hotel-monstruos';
+    const params = new URLSearchParams(location.search);
+    if (params.has('reiniciar')) localStorage.removeItem(CLAVE);
+    // ?ver=1 a ?ver=5 muestra el acertijo de ese monstruo (para probar los efectos)
+    const VER = params.has('ver') ? Math.min(Math.max(Number(params.get('ver')) - 1, 0), TOTAL - 1) : null;
+
+    let datos = JSON.parse(localStorage.getItem(CLAVE) || '{"encontrados":[],"hora":null}');
+    let finalMostrado = false;
+    let pistaActual = null;
+    let timerPiedra = null;
+
+    const $ = id => document.getElementById(id);
+    const videos = [...document.querySelectorAll('a-assets video')];
+    const scene = document.querySelector('a-scene');
+
+    function guardar() { localStorage.setItem(CLAVE, JSON.stringify(datos)); }
+
+    // Convierte el acertijo en letras animadas según el estilo del monstruo
+    function animarPista(i) {
+      const m = MONSTRUOS[i];
+      const cont = $('pista');
+      const estaOculto = cont.classList.contains('oculto');
+      cont.className = 'estilo-' + m.estilo + (estaOculto ? ' oculto' : '');
+      clearTimeout(timerPiedra);
+
+      const vel = m.estilo === 'fantasma' ? 40 : 28;   // milisegundos entre letras
+      let n = 0;
+      cont.innerHTML = m.pista.split('\n').map(linea =>
+        linea.split(' ').map(palabra =>
+          '<span class="palabra">' + [...palabra].map(ch => {
+            let extra = '';
+            if (Math.random() < 0.08) {
+              if (m.estilo === 'huesos') extra = ' suelto';
+              if (m.estilo === 'vampiro' || m.estilo === 'pantano') extra = ' gota';
+            }
+            return `<span class="l${extra}" style="--d:${n++ * vel}ms">${ch}</span>`;
+          }).join('') + '</span>'
+        ).join(' ')
+      ).join('<br>');
+
+      if (m.estilo === 'medusa') {
+        timerPiedra = setTimeout(() => cont.classList.add('piedra'), n * vel + 1500);
+      }
+    }
+
+    function pintarPanel() {
+      const enc = datos.encontrados;
+      $('contador').textContent = `Huéspedes encontrados: ${enc.length}/${TOTAL}`;
+      $('iconos').innerHTML = MONSTRUOS.map((m, i) =>
+        enc.includes(i) ? `<span>${m.icono}</span>` : `<span class="no">❔</span>`
+      ).join('');
+
+      let sig = MONSTRUOS.findIndex((m, i) => !enc.includes(i));
+      if (VER !== null) sig = VER;
+
+      if (sig === -1) {
+        $('siguiente').textContent = '¡Encontraste a todos los huéspedes!';
+        $('pista').innerHTML = '';
+        $('ayuda').classList.add('oculto');
+        pistaActual = -1;
+      } else {
+        $('siguiente').textContent = `Siguiente huésped: ${MONSTRUOS[sig].nombre}`;
+        if (sig !== pistaActual) { pistaActual = sig; animarPista(sig); }
+      }
+    }
+
+    function revisarFinal() {
+      if (datos.encontrados.length < TOTAL || finalMostrado) return;
+      finalMostrado = true;
+      if (!datos.hora) { datos.hora = new Date().toLocaleString('es'); guardar(); }
+      $('codigo').textContent = CODIGO_PREMIO;
+      $('hora').textContent = 'Completado: ' + datos.hora;
+      $('final').classList.remove('oculto');
+    }
+
+    // Tocar el panel oculta el acertijo, o lo vuelve a mostrar con la animación desde el inicio
+    $('panel').addEventListener('click', () => {
+      const p = $('pista');
+      if (p.classList.contains('oculto')) {
+        p.classList.remove('oculto');
+        if (pistaActual !== null && pistaActual >= 0) animarPista(pistaActual);
+      } else {
+        p.classList.add('oculto');
+      }
+    });
+
+    $('btn').addEventListener('click', async () => {
+      // Desbloquea el audio de todos los videos con el toque del usuario
+      await Promise.all(videos.map(v =>
+        v.play().then(() => { v.pause(); v.currentTime = 0; }).catch(() => {})
+      ));
+      $('inicio').classList.add('oculto');
+      $('panel').style.display = 'block';
+      pintarPanel();
+
+      if (!scene.hasLoaded) await new Promise(r => scene.addEventListener('loaded', r));
+      await scene.systems['mindar-image-system'].start();
+      revisarFinal();   // por si ya lo había completado antes
+    });
+
+    $('cerrar').addEventListener('click', () => $('final').classList.add('oculto'));
+
+    document.querySelectorAll('[mindar-image-target]').forEach(ent => {
+      const i = Number(ent.dataset.i);
+      const vid = videos[i];
+
+      ent.addEventListener('targetFound', () => {
+        if (vid.ended) vid.currentTime = 0;
+        vid.play();
+        if (!datos.encontrados.includes(i)) {
+          datos.encontrados.push(i);
+          guardar();
+          pintarPanel();
+        }
+      });
+
+      ent.addEventListener('targetLost', () => { vid.pause(); revisarFinal(); });
+      vid.addEventListener('ended', revisarFinal);
+    });
+  </script>
+</body>
+</html>
